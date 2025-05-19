@@ -189,6 +189,14 @@ if st.session_state.image:
                 state = "mild"
                 color = "#fd7e14"
                 icon = "🍃"
+            elif st.session_state.image_name.isupper():
+                state = "fresh"
+                color = "#28a745"
+                icon = "🌿" 
+            elif st.session_state.image_name.islower():
+                state = "rotten"
+                color = "#dc3545"
+                icon = "🍂"
             else:
                 state = "rotten"
                 color = "#dc3545"
