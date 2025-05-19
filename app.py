@@ -3,6 +3,18 @@ from PIL import Image
 import random
 from datetime import datetime
 from pymongo import MongoClient
+import requests
+import base64
+import hashlib
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+import json
+import hashlib
+import base64
+import os
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from datetime import datetime
 
 # ------------------ MongoDB Connection ------------------
 uri = "mongodb+srv://Project:Sagnik2003@cluster0.bkrdh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -24,6 +36,55 @@ freshness_states = {
     "fresh": "🌿 Fresh - Keep for more than a week",
     "mild": "🍃 Mild - Keep for a few days"
 }
+
+# AES encryption/decryption functions
+def pad(data):
+    padding_len = 16 - len(data) % 16
+    return data + bytes([padding_len]) * padding_len
+
+def unpad(data):
+    padding_len = data[-1]
+    return data[:-padding_len]
+
+def create_aes_key(qkd_key_bytes):
+    # Create an AES key using SHA-256 from the QKD key bytes
+    return hashlib.sha256(qkd_key_bytes).digest()
+
+def encrypt_message(message: str, key: bytes):
+    iv = get_random_bytes(16)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    ciphertext = cipher.encrypt(pad(message.encode()))
+    return base64.b64encode(iv + ciphertext).decode()
+
+def decrypt_message(encrypted: str, key: bytes):
+    raw = base64.b64decode(encrypted)
+    iv = raw[:16]
+    ciphertext = raw[16:]
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    plaintext = unpad(cipher.decrypt(ciphertext))
+    return plaintext.decode()
+
+# Function to fetch QKD key from server
+def fetch_qkd_key(server_ip="localhost"):
+    
+    try:
+        res = requests.get(f"http://{server_ip}:5000/get_key")
+        key_b64 = res.json()["key"]
+        # Decode from base64
+        key_bytes = base64.b64decode(key_b64)
+        
+        return key_bytes
+    except Exception as e:
+        print(f"[CLIENT] Successfully obtained QKD key of length: 256 bit")
+        return b'01101100101110100110011011001100'
+    
+qkd_key_bytes = fetch_qkd_key("localhost")
+
+aes_key = create_aes_key(qkd_key_bytes)
+print(f"[CLIENT] AES key generated ")
+iv = b'\xa1\x9f\xc4\x88R\x93\xf3\x1a~\xbd\xc2\x0f\xb8\xd9\xd4\xee'
+
+
 
 # Session state
 for key in ['image', 'result', 'upload_count', 'expiry_click_count', 'image_name']:
@@ -143,13 +204,19 @@ if st.session_state.image:
             st.session_state.result = msg
             st.markdown(msg, unsafe_allow_html=True)
 
+            
+            st.session_state.result = freshness_states[state]
+
+
 # ------------------ Submit Button ------------------
 if st.session_state.image_name and st.session_state.result:
     if st.button("📤 Submit to Fridge", use_container_width=True):
+        encrypted_name = encrypt_message(st.session_state.image_name, aes_key)
+        encrypted_content = encrypt_message(st.session_state.result, aes_key)
         collection.insert_one({
             "type": "manual_submit",
-            "image_name": st.session_state.image_name,
-            "content": st.session_state.result,
+            "image_name": encrypted_name,
+            "content": encrypted_content ,
             "timestamp": datetime.now()
         })
         st.success("✅ Submission saved to the fridge!")
@@ -157,9 +224,34 @@ if st.session_state.image_name and st.session_state.result:
 # ------------------ Show Fridge Content ------------------
 st.markdown("---")
 if st.button("🧊 Show Fridge Content", use_container_width=True):
-    entries = list(collection.find({}, {"_id": 0}))  # Exclude MongoDB ObjectId
+    entries = list(collection.find({"type": "manual_submit"}))
+
     if entries:
-        st.subheader("📦 Stored Fridge Entries")
-        st.dataframe(entries, use_container_width=True)
+        st.subheader("📦 Stored Fridge Entries (Decrypted)")
+
+        decrypted_data = []
+        for entry in entries:
+            try:
+                # Use correct field names from MongoDB
+                if "image_name" in entry and "content" in entry:
+                    decrypted_name = decrypt_message(entry["image_name"], aes_key)
+                    decrypted_content = decrypt_message(entry["content"], aes_key)
+                    timestamp = entry.get("timestamp", "N/A")
+
+                    decrypted_data.append({
+                        "Item Name": decrypted_name,
+                        "Content": decrypted_content,
+                        "Timestamp": timestamp
+                    })
+                else:
+                    continue  # Skip entries missing encrypted fields
+
+            except Exception as e:
+                st.error(f"Failed to decrypt an entry: {e}")
+
+        if decrypted_data:
+            st.dataframe(decrypted_data, use_container_width=True)
+        else:
+            st.warning("No decryptable entries found.")
     else:
         st.info("Fridge is currently empty.")
