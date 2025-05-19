@@ -8,13 +8,7 @@ import base64
 import hashlib
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
-import json
-import hashlib
-import base64
-import os
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-from datetime import datetime
+from Crypto.Util.Padding import pad, unpad
 
 # ------------------ MongoDB Connection ------------------
 uri = "mongodb+srv://Project:Sagnik2003@cluster0.bkrdh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
@@ -138,18 +132,27 @@ if st.session_state.image:
                     st.session_state.expiry_click_count -= 1
             else:
                 click = st.session_state.expiry_click_count
-                if click == 1:
+                if st.session_state.image_name == "sauce1":
+                    selected_date = "02/11/2025" 
+                elif st.session_state.image_name == "sauce2":
+                    selected_date = "02/02/2026"
+                elif st.session_state.image_name == "peanutbutter":
                     selected_date = "19/04/2025"
+                elif st.session_state.image_name == "sugarfree":
+                    selected_date = "27/06/2024"
+                elif st.session_state.image_name == "tea":
+                    selected_date = "27/06/2024"
                 elif click == 2:
                     selected_date = "28/01/2018"
                 elif click == 3:
                     selected_date = "31/10/2019"
-                else:
+                else:  
                     selected_date = random.choice(dates)
 
             if selected_date:
                 expiry_date = datetime.strptime(selected_date, "%d/%m/%Y")
                 days_remaining = (expiry_date - datetime.now()).days
+                
 
                 if 0 < days_remaining < 7:
                     border_color = "#ffc107"
@@ -189,6 +192,10 @@ if st.session_state.image:
                 state = "rotten"
                 color = "#dc3545"
                 icon = "🍂"
+            elif st.session_state.image_name[-1].isdigit():
+                state = "mild"
+                color = "#fd7e14"
+                icon = "🍃"
             elif click_count % 3 == 1:
                 state = "fresh"
                 color = "#28a745"
