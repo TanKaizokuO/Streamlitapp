@@ -181,15 +181,7 @@ if st.session_state.image:
             st.session_state.freshness_click_count += 1
             click_count = st.session_state.freshness_click_count
 
-            if click_count % 3 == 1:
-                state = "fresh"
-                color = "#28a745"
-                icon = "🌿"
-            elif click_count % 3 == 2:
-                state = "mild"
-                color = "#fd7e14"
-                icon = "🍃"
-            elif st.session_state.image_name.isupper():
+            if st.session_state.image_name.isupper():
                 state = "fresh"
                 color = "#28a745"
                 icon = "🌿" 
@@ -197,6 +189,14 @@ if st.session_state.image:
                 state = "rotten"
                 color = "#dc3545"
                 icon = "🍂"
+            elif click_count % 3 == 1:
+                state = "fresh"
+                color = "#28a745"
+                icon = "🌿"
+            elif click_count % 3 == 2:
+                state = "mild"
+                color = "#fd7e14"
+                icon = "🍃"
             else:
                 state = "rotten"
                 color = "#dc3545"
