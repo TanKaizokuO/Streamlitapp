@@ -8,10 +8,17 @@ import base64
 import hashlib
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
-from Crypto.Util.Padding import pad, unpad
+import json
+import hashlib
+import base64
+import os
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from datetime import datetime
 
 # ------------------ MongoDB Connection ------------------
-uri = "mongodb+srv://Project:Sagnik2003@cluster0.bkrdh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+uri = "mongodb+srv://user1:user1234@cluster0.tthwru.mongodb.net/"
+# mongodb+srv://user1:user1234@cluster0.bkrdh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 client = MongoClient(uri)
 db = client["smart_fridge_db"]
 collection = db["item_predictions"]
