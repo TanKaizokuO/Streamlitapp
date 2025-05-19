@@ -180,7 +180,7 @@ if st.session_state.image:
                         <p style='font-size: 16px; margin-top: 5px;'>{status_note}</p>
                     </div>
                 """
-                st.session_state.result = msg
+                st.session_state.result = days_remaining
                 st.markdown(msg, unsafe_allow_html=True)
 
     with col4:
